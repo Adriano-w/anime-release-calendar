@@ -346,11 +346,16 @@ function render(items) {
         // Marcação discreta: a série está na fila da Crunchyroll.
         if (isInQueue(item)) {
           card.classList.add("in-queue");
-          const flag = document.createElement("div");
-          flag.className = "queue-flag";
-          flag.textContent = t("queue.flag");
-          flag.title = t("queue.flagTitle");
-          texto.append(flag);
+
+          // O botão de fila já diz "na fila"; o selo só aparece quando não há
+          // botão — séries sem id interno, onde ele é a única indicação.
+          if (!canEditLists(item)) {
+            const flag = document.createElement("div");
+            flag.className = "queue-flag";
+            flag.textContent = t("queue.flag");
+            flag.title = t("queue.flagTitle");
+            texto.append(flag);
+          }
         }
 
         card.append(a);
