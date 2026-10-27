@@ -736,9 +736,11 @@ function writeQuery(localeTag) {
   );
 }
 
-// Envia uma escrita e normaliza o resultado. `missingIsOk` trata 404 como
-// sucesso ao remover: o item já não estava lá.
-async function apiWrite(auth, url, method, payload, missingIsOk) {
+// Envia uma escrita e normaliza o resultado.
+//   missingIsOk  trata 404 como sucesso ao remover: já não estava lá.
+//   fullIsFull   trata 400 como lista cheia, que é o que a Crunchyroll
+//                devolve ao adicionar numa Crunchylist no limite.
+async function apiWrite(auth, url, method, payload, missingIsOk, fullIsFull) {
   let response;
   try {
     response = await fetch(url, {
@@ -755,6 +757,8 @@ async function apiWrite(auth, url, method, payload, missingIsOk) {
   // Já presente (409) ou já ausente (404) deixam o estado desejado de pé.
   if (response.status === 409) return "already";
   if (response.status === 404 && missingIsOk) return "already";
+  // Lista no limite: é recusa legítima, não falha de rede nem de sessão.
+  if (response.status === 400 && fullIsFull) return "full";
   if (!response.ok) throw new Error(t("api.http", { status: response.status }));
   return "done";
 }
@@ -771,6 +775,22 @@ function customListItemUrl(accountId, listId, contentId, localeTag) {
     `${CR_ORIGIN}/content/v2/${encodeURIComponent(accountId)}/custom-lists/` +
     `${encodeURIComponent(listId)}/${encodeURIComponent(contentId)}${writeQuery(localeTag)}`
   );
+}
+
+// Resolve o id interno de uma série a partir do título/slug, com a mesma
+// validação usada no link do episódio: resultado duvidoso é recusado.
+async function resolveSeriesId(message) {
+  return withAccount(async (auth, accountId, localeTag) => {
+    const series = await findSeries(
+      auth,
+      { slug: message.slug, title: message.title },
+      localeTag
+    );
+    if (!series || !series.id) {
+      return { state: "error", message: t("api.seriesUnresolved") };
+    }
+    return { state: "ok", seriesId: series.id, slug: series.slug || "" };
+  });
 }
 
 // target: { kind: "queue" } ou { kind: "list", listId }
@@ -807,7 +827,16 @@ async function changeMembership(message) {
     }
 
     const payload = action === "add" ? { content_id: contentId } : {};
-    const outcome = await apiWrite(auth, url, method, payload, action === "remove");
+    const outcome = await apiWrite(
+      auth,
+      url,
+      method,
+      payload,
+      action === "remove",
+      isList && action === "add"
+    );
+
+    if (outcome === "full") return { state: "full", listId: target.listId };
 
     return { state: "ok", outcome, action, contentId, listId: isList ? target.listId : "" };
   });
@@ -831,6 +860,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === "GET_WATCHLIST") {
     fetchWatchlist()
+      .then(sendResponse)
+      .catch((err) => sendResponse({ state: "error", message: String((err && err.message) || err) }));
+    return true;
+  }
+
+  if (message.type === "RESOLVE_SERIES") {
+    resolveSeriesId(message)
       .then(sendResponse)
       .catch((err) => sendResponse({ state: "error", message: String((err && err.message) || err) }));
     return true;

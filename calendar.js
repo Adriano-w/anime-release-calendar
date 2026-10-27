@@ -844,9 +844,34 @@ async function openEpisode(item, anchor) {
 
 /* ------------------- Alterar fila e Crunchylists ------------------- */
 
-// Só dá para alterar o que tem id interno da Crunchyroll e sessão válida.
+// Basta a sessão: o id interno da série, quando a fonte não traz, é
+// resolvido na hora do clique.
 function canEditLists(item) {
-  return hasExtensionRuntime() && !!(item && item.seriesId) && !!queueIndex;
+  return hasExtensionRuntime() && !!item && !!queueIndex;
+}
+
+// Parte das séries vem com o link antigo da Crunchyroll, sem id. Resolve uma
+// vez por série e guarda no próprio item.
+async function ensureSeriesId(item) {
+  if (item.seriesId) return item.seriesId;
+
+  const result = await askBackground({
+    type: "RESOLVE_SERIES",
+    title: item.title,
+    slug: item.id
+  });
+
+  if (result.state !== "ok" || !result.seriesId) {
+    const motivo =
+      result.state === "no-session"
+        ? t("action.needSession")
+        : result.message || t("api.seriesUnresolved");
+    setQueueStatus(t("write.failed", { message: motivo }), "error");
+    return "";
+  }
+
+  item.seriesId = result.seriesId;
+  return item.seriesId;
 }
 
 // Em quais Crunchylists a série está. Vazio quando os marcadores estão
@@ -857,12 +882,21 @@ function listsContaining(item) {
 }
 
 async function applyMembership(item, target, action, listTitle, card) {
+  const contentId = await ensureSeriesId(item);
+  if (!contentId) return false;
+
   const result = await askBackground({
     type: "CHANGE_MEMBERSHIP",
-    contentId: item.seriesId,
+    contentId,
     target,
     action
   });
+
+  // Lista cheia tem recado próprio: "erro HTTP 400" não diria nada.
+  if (result.state === "full") {
+    setQueueStatus(t("write.listFull", { list: listTitle || "" }), "warn");
+    return false;
+  }
 
   if (result.state !== "ok") {
     const motivo =
