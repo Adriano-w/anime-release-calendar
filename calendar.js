@@ -22,6 +22,8 @@ let filterSource = "all";
 let filterIndex = null;
 // Crunchylists do usuário e seus índices já montados.
 let customLists = [];
+// Evita repetir a consulta quando o usuário de fato não tem Crunchylists.
+let listsLoaded = false;
 const listIndexes = new Map();
 // Janela da semana vinda da fonte, para rotular as colunas com a data real.
 let weekWindow = null;
@@ -536,6 +538,7 @@ async function loadCustomLists() {
 
   const result = await askBackground({ type: "GET_CUSTOM_LISTS" });
   customLists = result.state === "ok" && Array.isArray(result.lists) ? result.lists : [];
+  if (result.state === "ok") listsLoaded = true;
 
   if (!customLists.length) listIndexes.clear();
   rebuildFilterOptions();
@@ -853,7 +856,7 @@ function listsContaining(item) {
   return customLists.filter((list) => indexHas(listIndexes.get(list.id), item));
 }
 
-async function applyMembership(item, target, action, listTitle) {
+async function applyMembership(item, target, action, listTitle, card) {
   const result = await askBackground({
     type: "CHANGE_MEMBERSHIP",
     contentId: item.seriesId,
@@ -897,8 +900,35 @@ async function applyMembership(item, target, action, listTitle) {
   if (filterSource === FILTER_QUEUE) filterIndex = queueIndex;
   else if (naLista && filterSource === target.listId) filterIndex = listIndexes.get(target.listId);
 
-  render(lastItems);
+  // Redesenhar tudo recria as 50 capas e faz a tela piscar. Só vale a pena
+  // quando o item pode precisar entrar ou sair da visão por causa do filtro.
+  const afetaFiltro =
+    (!naLista && filterSource === FILTER_QUEUE) ||
+    (naLista && filterSource === target.listId);
+
+  if (afetaFiltro) render(lastItems);
+  else refreshCard(card, item);
+
   return true;
+}
+
+// Repõe só as partes do cartão que dependem de pertencimento.
+function refreshCard(card, item) {
+  if (!card || !card.isConnected) {
+    render(lastItems);
+    return;
+  }
+
+  card.classList.toggle("in-queue", isInQueue(item));
+
+  const acoes = card.querySelector(".cardactions");
+  const marcasAntigas = card.querySelector(".listmarks");
+  if (marcasAntigas) marcasAntigas.remove();
+
+  const marcas = buildListMarks(item);
+  if (marcas) card.insertBefore(marcas, acoes || null);
+
+  if (acoes) acoes.replaceWith(buildCardActions(item));
 }
 
 function buildQueueButton(item) {
@@ -914,7 +944,8 @@ function buildQueueButton(item) {
   botao.addEventListener("click", async () => {
     if (botao.disabled) return;
     botao.disabled = true;
-    await applyMembership(item, { kind: "queue" }, dentro ? "remove" : "add");
+    const card = botao.closest(".card");
+    await applyMembership(item, { kind: "queue" }, dentro ? "remove" : "add", "", card);
     botao.disabled = false;
   });
 
@@ -952,10 +983,17 @@ function preencherPainel(painel, item) {
   painel.replaceChildren();
 
   if (!customLists.length) {
-    const vazio = document.createElement("div");
-    vazio.className = "listmenu-empty";
-    vazio.textContent = t("action.noLists");
-    painel.append(vazio);
+    const aviso = document.createElement("div");
+    aviso.className = "listmenu-empty";
+    // Antes de a consulta terminar, "sem listas" seria mentira.
+    aviso.textContent = t(listsLoaded ? "action.noLists" : "marks.loading");
+    painel.append(aviso);
+
+    if (!listsLoaded) {
+      loadCustomLists().then(() => {
+        if (!painel.hidden) preencherPainel(painel, item);
+      });
+    }
     return;
   }
 
@@ -976,8 +1014,9 @@ function preencherPainel(painel, item) {
     linha.addEventListener("click", async () => {
       if (linha.disabled) return;
       linha.disabled = true;
+      const card = linha.closest(".card");
       const acao = showListMarks && marcado ? "remove" : "add";
-      const ok = await applyMembership(item, { kind: "list", listId: list.id }, acao, list.title);
+      const ok = await applyMembership(item, { kind: "list", listId: list.id }, acao, list.title, card);
       linha.disabled = false;
       if (ok) painel.hidden = true;
     });
@@ -1019,15 +1058,21 @@ async function loadAllListIndexes() {
 
   setQueueStatus(t("marks.loading"));
 
-  for (const list of faltando) {
-    const result = await askBackground({ type: "GET_CUSTOM_LIST", listId: list.id });
+  // Em paralelo: em série, cada lista esperava a anterior terminar.
+  const resultados = await Promise.all(
+    faltando.map((list) => askBackground({ type: "GET_CUSTOM_LIST", listId: list.id }))
+  );
+
+  let semSessao = false;
+  resultados.forEach((result, i) => {
     if (result.state === "ok") {
-      listIndexes.set(list.id, buildQueueIndex(result.entries || []));
+      listIndexes.set(faltando[i].id, buildQueueIndex(result.entries || []));
     } else if (result.state === "no-session") {
-      setQueueStatus(t("action.needSession"), "warn");
-      return;
+      semSessao = true;
     }
-  }
+  });
+
+  if (semSessao) setQueueStatus(t("action.needSession"), "warn");
 }
 
 async function setShowListMarks(enabled) {
