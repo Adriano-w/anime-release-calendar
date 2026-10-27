@@ -239,6 +239,14 @@ h1 {
     transform: translateY(-1px)
 }
 
+/* O painel de listas é descendente do cartão, então o deslocamento do hover
+   o movia junto: o cursor saía na borda, o cartão voltava, o cursor entrava
+   de novo — um laço que fazia a lista piscar. Com o painel aberto, o cartão
+   fica parado. */
+.card:has(.listmenu:not([hidden])):hover {
+    transform: none
+}
+
 /* Cartão em formato de pôster: capa ocupando a largura inteira e, abaixo
    dela, o nome e os detalhes. A imagem sangra até a borda, então o
    espaçamento sai do cartão e volta no bloco de texto. */
