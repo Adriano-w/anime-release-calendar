@@ -230,15 +230,11 @@ h1 {
 .episode {
     display: block;
     padding: 11px;
-    background: #20202a;
-    border: 1px solid transparent;
-    border-radius: 9px;
     color: inherit;
-    text-decoration: none;
-    transition: .15s
+    text-decoration: none
 }
 
-.episode:hover {
+.card:hover {
     border-color: var(--accent);
     transform: translateY(-1px)
 }
@@ -247,8 +243,7 @@ h1 {
    dela, o nome e os detalhes. A imagem sangra até a borda, então o
    espaçamento sai do cartão e volta no bloco de texto. */
 .episode.has-thumb {
-  padding: 0;
-  overflow: hidden
+  padding: 0
 }
 
 .thumb {
@@ -256,6 +251,7 @@ h1 {
   width: 100%;
   aspect-ratio: 5 / 7;
   object-fit: cover;
+  border-radius: 8px 8px 0 0;
   background: #2a2a34
 }
 
@@ -550,12 +546,12 @@ body.popup {
   border-color: #5f4a23
 }
 
-.episode.in-queue {
+.card.in-queue {
   border-color: #2f5b42;
   background: linear-gradient(180deg, #223126 0%, #20202a 70%)
 }
 
-.episode.in-queue:hover {
+.card.in-queue:hover {
   border-color: var(--accent)
 }
 
@@ -567,13 +563,27 @@ body.popup {
 /* Cartão = link + ações. O link continua sendo o alvo grande; os botões
    ficam fora dele para não aninhar interativo dentro de âncora. */
 .card {
-  position: relative
+  position: relative;
+  background: #20202a;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  transition: .15s
 }
 
 .cardactions {
   display: flex;
   gap: 6px;
-  margin-top: 6px
+  padding: 0 11px 11px
+}
+
+/* Quando há algo abaixo do texto, ele cede o espaçamento de baixo. */
+.card:has(.cardactions) .epinfo,
+.card:has(.listmarks) .epinfo {
+  padding-bottom: 7px
+}
+
+.card:has(.cardactions) .listmarks {
+  padding-bottom: 7px
 }
 
 .cardbtn {
@@ -665,7 +675,7 @@ body.popup {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin-top: 5px
+  padding: 0 11px 11px
 }
 
 .listmark {

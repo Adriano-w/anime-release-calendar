@@ -345,7 +345,7 @@ function render(items) {
 
         // Marcação discreta: a série está na fila da Crunchyroll.
         if (isInQueue(item)) {
-          a.classList.add("in-queue");
+          card.classList.add("in-queue");
           const flag = document.createElement("div");
           flag.className = "queue-flag";
           flag.textContent = t("queue.flag");
