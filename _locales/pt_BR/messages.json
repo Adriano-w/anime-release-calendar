@@ -1,0 +1,11 @@
+{
+  "extName": {
+    "message": "Anime Release Calendar"
+  },
+  "extDescription": {
+    "message": "Calendário semanal de lançamentos de animes com link direto do episódio. Marca os títulos da sua fila da Crunchyroll."
+  },
+  "actionTitle": {
+    "message": "Calendário de animes"
+  }
+}

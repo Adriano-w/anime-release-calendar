@@ -1,0 +1,79 @@
+{
+  "manifest_version": 3,
+  "name": "__MSG_extName__",
+  "version": "0.4.0",
+  "description": "__MSG_extDescription__",
+  "default_locale": "en",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://www.crunchyroll.com/*",
+    "https://www.anidachi.app/*",
+    "https://graphql.anilist.co/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.crunchyroll.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "injected.css"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.crunchyroll.com/*"
+      ],
+      "js": [
+        "cr-auth-capture.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "https://www.crunchyroll.com/*"
+      ],
+      "js": [
+        "cr-auth-bridge.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": false
+    }
+  ],
+  "action": {
+    "default_title": "__MSG_actionTitle__",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "calendar.html"
+      ],
+      "matches": [
+        "https://www.crunchyroll.com/*"
+      ]
+    }
+  ]
+}

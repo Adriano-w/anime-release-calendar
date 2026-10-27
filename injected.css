@@ -1,0 +1,27 @@
+/* Quando o item herda as classes do menu da Crunchyroll, nenhum estilo é
+   aplicado aqui — o visual vem do próprio site, inclusive o hover. As regras
+   abaixo só valem no caminho de reserva, quando não houve vizinho de onde
+   copiar o estilo. */
+
+#cr-calendar-revival-nav-item {
+  display: inline-flex;
+  align-items: center;
+  list-style: none;
+}
+
+#cr-calendar-revival-nav-link.cr-calendar-revival-fallback {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 100% !important;
+  padding: 0 16px !important;
+  color: inherit !important;
+  font: inherit !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+}
+
+#cr-calendar-revival-nav-link.cr-calendar-revival-fallback:hover {
+  color: #fff !important;
+}

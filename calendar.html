@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n-doc="app.name">Anime calendar</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <!-- Sem prefixo de locale: a Crunchyroll resolve o idioma da conta. -->
+    <a class="brand brandlink" id="homeLink" href="https://www.crunchyroll.com/"
+       data-i18n-title="nav.home" data-i18n-aria="nav.home">
+      <span class="logo">◷</span>
+      <div><strong data-i18n="app.name"></strong><small data-i18n="app.tagline"></small></div>
+    </a>
+    <div class="actions">
+      <label class="picker" for="language" data-i18n="language.label"></label>
+      <select id="language" class="picker-select compact"></select>
+      <button id="refresh" class="secondary" data-i18n="action.refresh"></button>
+      <button id="syncQueue" class="secondary" data-i18n="action.syncQueue"></button>
+      <!-- Sem prefixo de locale: a Crunchyroll redireciona para a temporada
+           atual no idioma da conta, então o link nunca fica desatualizado. -->
+      <a class="button-link" id="seasonLink" href="https://www.crunchyroll.com/simulcastcalendar" target="_blank" rel="noreferrer" data-i18n="action.season"></a>
+    </div>
+  </header>
+  <main>
+    <section class="intro">
+      <div>
+        <p class="eyebrow" data-i18n="intro.eyebrow"></p>
+        <h1 data-i18n="intro.heading"></h1>
+        <p class="muted" data-i18n="intro.note"></p>
+      </div>
+      <div class="source-pill"><span class="dot"></span><span id="sourceLabel" data-i18n="source.preparing"></span></div>
+    </section>
+
+    <div class="weeknav">
+      <button id="prevWeek" class="weekbtn" type="button" data-i18n-aria="week.previous" data-i18n-title="week.previous">‹</button>
+      <div class="weeklabel">
+        <strong id="weekRange"></strong>
+        <span id="weekRelative" class="muted small"></span>
+      </div>
+      <button id="nextWeek" class="weekbtn" type="button" data-i18n-aria="week.next" data-i18n-title="week.next">›</button>
+      <button id="thisWeek" class="secondary small-btn" type="button" data-i18n="week.current"></button>
+    </div>
+
+    <div class="toolbar">
+      <label class="picker" for="filterSource" data-i18n="filter.label"></label>
+      <select id="filterSource" class="picker-select"></select>
+      <span id="filterHint" class="muted small" data-i18n="filter.hintLocked"></span>
+    </div>
+
+    <div id="status" class="status" data-i18n="status.loading"></div>
+    <div id="queueStatus" class="status queue-status" data-i18n="queue.idle"></div>
+    <div id="days" class="days"></div>
+
+    <footer>
+      <p><strong data-i18n="footer.dataTitle"></strong> <span data-i18n="footer.data"></span></p>
+      <p><span data-i18n="footer.structure"></span></p>
+      <p><strong data-i18n="footer.linksTitle"></strong> <span data-i18n="footer.links"></span></p>
+      <p><strong data-i18n="footer.queueTitle"></strong> <span data-i18n="footer.queue"></span></p>
+    </footer>
+  </main>
+  <script src="i18n.js"></script>
+  <script src="match.js"></script>
+  <script src="anilist.js"></script>
+  <script src="calendar.js"></script>
+</body>
+</html>
