@@ -243,11 +243,38 @@ h1 {
     transform: translateY(-1px)
 }
 
+/* Cartão em formato de pôster: capa ocupando a largura inteira e, abaixo
+   dela, o nome e os detalhes. A imagem sangra até a borda, então o
+   espaçamento sai do cartão e volta no bloco de texto. */
+.episode.has-thumb {
+  padding: 0;
+  overflow: hidden
+}
+
+.thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 5 / 7;
+  object-fit: cover;
+  background: #2a2a34
+}
+
+.episode.has-thumb .epinfo {
+  padding: 10px 11px 11px
+}
+
+.epmeta {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-top: 5px
+}
+
 .time {
     color: var(--accent2);
     font-size: 11px;
-    font-weight: 800;
-    margin-bottom: 4px
+    font-weight: 800
 }
 
 .title {
@@ -258,8 +285,7 @@ h1 {
 
 .epnum {
     color: var(--muted);
-    font-size: 12px;
-    margin-top: 6px
+    font-size: 12px
 }
 
 .empty {
@@ -422,6 +448,38 @@ body.popup {
 
 .small-btn[hidden] {
   display: none
+}
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 13px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap
+}
+
+.switch:hover {
+  border-color: var(--accent)
+}
+
+.switch:has(input:checked) {
+  border-color: var(--accent);
+  color: var(--accent)
+}
+
+.switch input {
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  cursor: inherit
 }
 
 .picker {

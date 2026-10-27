@@ -10,6 +10,9 @@ AniDachi.
 
 - **Weekly grid**, seven columns, with the current day highlighted and the real
   date on every column header.
+- **Cover art** on every release, so a title is recognisable at a glance.
+- **Upcoming releases are hidden by default** — the week shows what has already
+  aired. A toggle brings the rest of the week into view, and the choice sticks.
 - **Week navigation** — step back to catch up on what you missed, or forward to
   see what is coming.
 - **Direct episode links.** The schedule source usually carries Crunchyroll's

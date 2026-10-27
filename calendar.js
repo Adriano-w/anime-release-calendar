@@ -27,6 +27,9 @@ const listIndexes = new Map();
 let weekWindow = null;
 // Semana exibida em relação à atual: 0 = atual, -1 = anterior.
 let weekOffset = 0;
+// Lançamentos que ainda não saíram ficam ocultos por padrão.
+let showUpcoming = false;
+const UPCOMING_STORAGE_KEY = "showUpcoming";
 
 function setQueueStatus(message, tone) {
   if (!queueStatusEl) return;
@@ -40,6 +43,36 @@ function setQueueStatus(message, tone) {
 // com o service worker.
 function isInQueue(item) {
   return indexHas(queueIndex, item);
+}
+
+// Preferência booleana, no mesmo lugar onde o idioma é guardado.
+async function readFlag(key) {
+  try {
+    if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+      const stored = await chrome.storage.local.get(key);
+      return !!(stored && stored[key]);
+    }
+    return localStorage.getItem(key) === "1";
+  } catch (err) {
+    return false;
+  }
+}
+
+function writeFlag(key, value) {
+  try {
+    if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+      chrome.storage.local.set({ [key]: !!value });
+      return;
+    }
+    localStorage.setItem(key, value ? "1" : "0");
+  } catch (err) {
+    /* preferência não persistida; vale para a sessão atual */
+  }
+}
+
+// Um lançamento é futuro quando seu instante ainda não chegou.
+function isUpcoming(item, now) {
+  return (item.sortKey || 0) > now;
 }
 
 function cleanText(s) {
@@ -166,7 +199,16 @@ function render(items) {
   const all = items || [];
   // O filtro só vale quando a fila é conhecida; sem ela, mostra tudo.
   const filtering = filterSource !== "all" && !!filterIndex;
-  const visible = filtering ? all.filter((item) => indexHas(filterIndex, item)) : all;
+  const selected = filtering ? all.filter((item) => indexHas(filterIndex, item)) : all;
+
+  // Lançamentos futuros entram só quando pedidos.
+  const now = Date.now();
+  const hiddenUpcoming = showUpcoming
+    ? 0
+    : selected.filter((item) => isUpcoming(item, now)).length;
+  const visible = showUpcoming
+    ? selected
+    : selected.filter((item) => !isUpcoming(item, now));
 
   const today = new Date();
   const dayNames = weekdayNames();
@@ -223,7 +265,13 @@ function render(items) {
     if (!dayItems.length) {
       const empty = document.createElement("div");
       empty.className = "empty";
-      empty.textContent = t(filtering ? "day.emptyFiltered" : "day.empty");
+      // Distingue "nada neste dia" de "só tem coisa que ainda não saiu".
+      const soFuturos =
+        !showUpcoming &&
+        selected.some((item) => item.day === d && isUpcoming(item, now));
+      empty.textContent = t(
+        soFuturos ? "day.emptyUpcoming" : filtering ? "day.emptyFiltered" : "day.empty"
+      );
       list.append(empty);
     } else {
       dayItems.sort((a, b) => (a.sortKey || 0) - (b.sortKey || 0));
@@ -253,13 +301,37 @@ function render(items) {
         title.className = "title";
         title.textContent = item.title;
 
-        a.append(time, title);
+        const texto = document.createElement("div");
+        texto.className = "epinfo";
+        // Nome primeiro, logo abaixo da capa; horário e episódio vêm depois.
+        texto.append(title);
+
+        const meta = document.createElement("div");
+        meta.className = "epmeta";
+        meta.append(time);
+        texto.append(meta);
+
+        if (item.image) {
+          const thumb = document.createElement("img");
+          thumb.className = "thumb";
+          thumb.src = item.image;
+          thumb.loading = "lazy";
+          thumb.decoding = "async";
+          // O título já está ao lado; repetir só atrapalharia o leitor de tela.
+          thumb.alt = "";
+          // Capa indisponível não deve deixar ícone quebrado no cartão.
+          thumb.addEventListener("error", () => thumb.remove());
+          a.classList.add("has-thumb");
+          a.append(thumb);
+        }
+
+        a.append(texto);
 
         if (item.episode) {
-          const ep = document.createElement("div");
+          const ep = document.createElement("span");
           ep.className = "epnum";
           ep.textContent = item.episode;
-          a.append(ep);
+          meta.append(ep);
         }
 
         // Marcação discreta: a série está na fila da Crunchyroll.
@@ -269,7 +341,7 @@ function render(items) {
           flag.className = "queue-flag";
           flag.textContent = t("queue.flag");
           flag.title = t("queue.flagTitle");
-          a.append(flag);
+          texto.append(flag);
         }
 
         list.append(a);
@@ -280,7 +352,7 @@ function render(items) {
     daysEl.append(col);
   }
 
-  updateFilterUi(all.length, visible.length);
+  updateFilterUi(all.length, visible.length, hiddenUpcoming);
 }
 
 
@@ -347,19 +419,37 @@ function rebuildFilterOptions() {
   }
 }
 
-function updateFilterUi(total, visible) {
+function updateFilterUi(total, visible, hiddenUpcoming) {
   rebuildFilterOptions();
+
+  const toggle = document.getElementById("showUpcoming");
+  if (toggle) toggle.checked = showUpcoming;
 
   const hint = document.getElementById("filterHint");
   if (!hint) return;
 
+  const ocultos = hiddenUpcoming || 0;
+  const sufixo = ocultos ? tn("upcoming.hidden", ocultos) : "";
+
+  // Semana inteira no futuro ficaria vazia sem explicação.
+  if (!showUpcoming && ocultos && visible === 0) {
+    hint.textContent = t("upcoming.allHidden");
+    return;
+  }
+
   if (filterSource === FILTER_ALL) {
-    hint.textContent = tn("filter.hintAll", total);
+    hint.textContent = tn("filter.hintAll", total) + sufixo;
   } else if (!filterIndex) {
     hint.textContent = t("filter.hintUnavailable");
   } else {
-    hint.textContent = t("filter.hintFiltered", { visible, total, label: filterLabel() });
+    hint.textContent = t("filter.hintFiltered", { visible, total, label: filterLabel() }) + sufixo;
   }
+}
+
+function setShowUpcoming(enabled) {
+  showUpcoming = !!enabled;
+  writeFlag(UPCOMING_STORAGE_KEY, showUpcoming);
+  render(lastItems);
 }
 
 async function setFilterSource(value) {
@@ -742,8 +832,14 @@ function updateWeekUi() {
 
   const relative = document.getElementById("weekRelative");
   if (relative) {
+    // Passado e futuro têm redações diferentes; usar a mesma fazia a semana
+    // seguinte aparecer como "1 semana atrás".
     relative.textContent =
-      weekOffset === 0 ? t("week.thisWeek") : tn("week.past", Math.abs(weekOffset));
+      weekOffset === 0
+        ? t("week.thisWeek")
+        : weekOffset < 0
+          ? tn("week.past", -weekOffset)
+          : tn("week.future", weekOffset);
   }
 
   const thisWeek = document.getElementById("thisWeek");
@@ -798,6 +894,7 @@ function changeLanguage(code) {
 document.getElementById("refresh").addEventListener("click", () => load());
 document.getElementById("syncQueue").addEventListener("click", () => syncQueue({ interactive: true }));
 document.getElementById("filterSource").addEventListener("change", (event) => setFilterSource(event.target.value));
+document.getElementById("showUpcoming").addEventListener("change", (event) => setShowUpcoming(event.target.checked));
 document.getElementById("language").addEventListener("change", (event) => changeLanguage(event.target.value));
 document.getElementById("prevWeek").addEventListener("click", () => goToWeek(weekOffset - 1));
 document.getElementById("nextWeek").addEventListener("click", () => goToWeek(weekOffset + 1));
@@ -805,6 +902,7 @@ document.getElementById("thisWeek").addEventListener("click", () => goToWeek(0))
 
 (async function start() {
   await initLanguage();
+  showUpcoming = await readFlag(UPCOMING_STORAGE_KEY);
   applyStaticTranslations();
   buildLanguageOptions();
   rebuildFilterOptions();

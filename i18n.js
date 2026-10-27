@@ -32,6 +32,8 @@ const STRINGS = {
     "week.thisWeek": "This week",
     "week.past.one": "1 week ago",
     "week.past.other": "{count} weeks ago",
+    "week.future.one": "Next week",
+    "week.future.other": "In {count} weeks",
     "week.rangeLabel": "{start} – {end}",
     "week.navUnavailable": "Week navigation needs the main source, which is unavailable right now.",
 
@@ -80,6 +82,13 @@ const STRINGS = {
     "queue.noSession": "Queue not synced. Sign in to Crunchyroll and use “Sync queue”.",
     "queue.failed": "Could not sync the queue: {message}. The calendar keeps working without marks.",
     "queue.unknownError": "unknown error",
+
+    "upcoming.label": "Show upcoming",
+    "upcoming.title": "Include releases that have not aired yet",
+    "upcoming.hidden.one": " {count} upcoming release hidden.",
+    "upcoming.hidden.other": " {count} upcoming releases hidden.",
+    "upcoming.allHidden": "Every release in this week is still upcoming. Turn on “Show upcoming” to see them.",
+    "day.emptyUpcoming": "Only upcoming releases on this day.",
 
     "filter.label": "Show",
     "filter.all": "All releases",
@@ -155,6 +164,8 @@ const STRINGS = {
     "week.thisWeek": "Esta semana",
     "week.past.one": "1 semana atrás",
     "week.past.other": "{count} semanas atrás",
+    "week.future.one": "Semana que vem",
+    "week.future.other": "Daqui a {count} semanas",
     "week.rangeLabel": "{start} – {end}",
     "week.navUnavailable": "A navegação entre semanas depende da fonte principal, que está indisponível agora.",
 
@@ -203,6 +214,13 @@ const STRINGS = {
     "queue.noSession": "Fila não sincronizada. Entre na Crunchyroll e use “Sincronizar fila”.",
     "queue.failed": "Não foi possível sincronizar a fila: {message}. O calendário continua funcionando sem marcações.",
     "queue.unknownError": "erro desconhecido",
+
+    "upcoming.label": "Mostrar futuros",
+    "upcoming.title": "Incluir lançamentos que ainda não saíram",
+    "upcoming.hidden.one": " {count} lançamento futuro oculto.",
+    "upcoming.hidden.other": " {count} lançamentos futuros ocultos.",
+    "upcoming.allHidden": "Todos os lançamentos desta semana ainda estão por vir. Ative “Mostrar futuros” para vê-los.",
+    "day.emptyUpcoming": "Só lançamentos futuros neste dia.",
 
     "filter.label": "Mostrar",
     "filter.all": "Todos os lançamentos",

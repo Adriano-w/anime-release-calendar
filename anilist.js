@@ -24,6 +24,7 @@ const ANILIST_QUERY = `query ($start: Int, $end: Int, $page: Int) {
       airingAt
       media {
         title { romaji english }
+        coverImage { large medium color }
         externalLinks { site url }
       }
     }
@@ -91,12 +92,23 @@ function scheduleItem(entry, range) {
   const { seriesId, slug } = parseCrunchyrollUrl(url);
   const episodeNumber = Number.isFinite(entry.episode) ? entry.episode : null;
 
+  // A capa vem na mesma consulta, então não custa requisição extra. Prefere a
+  // versão grande porque ela ocupa a largura inteira do cartão; a pequena
+  // (100x144) ficaria borrada nesse tamanho.
+  const cover = media.coverImage || {};
+  const image =
+    (typeof cover.large === "string" && cover.large) ||
+    (typeof cover.medium === "string" && cover.medium) ||
+    "";
+
   return {
     day: airsAt.getDay(),
     date: airsAt,
     time: airsAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     sortKey: airsAt.getTime(),
     title,
+    image,
+    accent: typeof cover.color === "string" ? cover.color : "",
     episode: episodeNumber === null ? "" : t("episode.label", { number: episodeNumber }),
     episodeNumber,
     seriesId,
