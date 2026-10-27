@@ -39,8 +39,18 @@
   </ul>
 
   <h3>Your Crunchyroll queue and Crunchylists</h3>
-  <p>Read only to mark and filter releases in the calendar. The titles are held
-  in memory for the open page and are not stored or transmitted.</p>
+  <p>Read only to mark and filter releases in the calendar. The titles are kept
+  in <code>chrome.storage.session</code>, which is memory only and is erased
+  when the browser closes, so reopening the calendar in the same session does
+  not request them again. They are never written to disk and never transmitted
+  anywhere.</p>
+
+  <h3>Changing your queue and Crunchylists</h3>
+  <p>The extension can add a series to, or remove it from, your Crunchyroll
+  queue or one of your Crunchylists. It does so <strong>only when you click the
+  control on a card</strong>, and only for the series on that card. It never
+  changes anything on its own, and it cannot create, rename or delete a
+  list.</p>
 
   <h3>Your language preference</h3>
   <p>Stored locally so the interface opens in the language you chose.</p>
@@ -57,7 +67,7 @@
     <thead><tr><th>Host</th><th>Purpose</th></tr></thead>
     <tbody>
       <tr><td><code>graphql.anilist.co</code></td><td>Fetch the weekly release schedule (public API, no account)</td></tr>
-      <tr><td><code>www.crunchyroll.com</code></td><td>Read your queue and Crunchylists and resolve episode links, using your existing session</td></tr>
+      <tr><td><code>www.crunchyroll.com</code></td><td>Read your queue and Crunchylists, resolve episode links, and apply the add or remove you asked for — all using your existing session</td></tr>
       <tr><td><code>www.anidachi.app</code></td><td>Backup schedule source, used only if AniList fails</td></tr>
     </tbody>
   </table>
@@ -79,7 +89,7 @@
     <thead><tr><th>Permission</th><th>Why</th></tr></thead>
     <tbody>
       <tr><td><code>storage</code></td><td>Language preference, public identifier cache, and the in-memory session token</td></tr>
-      <tr><td>Access to <code>crunchyroll.com</code></td><td>Add the calendar entry to the menu and read your queue and Crunchylists</td></tr>
+      <tr><td>Access to <code>crunchyroll.com</code></td><td>Add the calendar entry to the menu, read your queue and Crunchylists, and change them when you ask</td></tr>
       <tr><td>Access to <code>graphql.anilist.co</code> and <code>www.anidachi.app</code></td><td>Fetch the schedule</td></tr>
     </tbody>
   </table>

@@ -32,10 +32,8 @@ let weekOffset = 0;
 // Lançamentos que ainda não saíram ficam ocultos por padrão.
 let showUpcoming = false;
 const UPCOMING_STORAGE_KEY = "showUpcoming";
-// Marcadores de Crunchylist custam uma requisição por lista, então são
-// opcionais e vêm desligados.
-let showListMarks = false;
-const MARKS_STORAGE_KEY = "showListMarks";
+// O conteúdo das Crunchylists é lido uma vez por sessão (o service worker o
+// mantém em memória), então os marcadores ficam sempre ligados.
 
 function setQueueStatus(message, tone) {
   if (!queueStatusEl) return;
@@ -448,12 +446,6 @@ function updateFilterUi(total, visible, hiddenUpcoming) {
   const toggle = document.getElementById("showUpcoming");
   if (toggle) toggle.checked = showUpcoming;
 
-  const marcas = document.getElementById("showListMarks");
-  if (marcas) {
-    marcas.checked = showListMarks;
-    // Sem fila sincronizada não há Crunchylists para marcar.
-    marcas.disabled = !queueIndex;
-  }
 
   const hint = document.getElementById("filterHint");
   if (!hint) return;
@@ -737,9 +729,9 @@ async function syncQueue({ interactive = false } = {}) {
       render(lastItems);
 
       // Com sessão válida, as Crunchylists também ficam disponíveis no filtro.
-      loadCustomLists().then(() => {
-        if (showListMarks) setShowListMarks(true);
-      });
+      loadCustomLists()
+        .then(loadAllListIndexes)
+        .then(() => render(lastItems));
 
       if (!result.total) {
         // Fila vazia é resultado legítimo, não falha de autenticação.
@@ -874,10 +866,8 @@ async function ensureSeriesId(item) {
   return item.seriesId;
 }
 
-// Em quais Crunchylists a série está. Vazio quando os marcadores estão
-// desligados — aí o painel só oferece adicionar.
+// Em quais Crunchylists a série está.
 function listsContaining(item) {
-  if (!showListMarks) return [];
   return customLists.filter((list) => indexHas(listIndexes.get(list.id), item));
 }
 
@@ -1039,17 +1029,14 @@ function preencherPainel(painel, item) {
     linha.className = "listmenu-item";
 
     const marcado = dentroDe.has(list.id);
-    // Sem marcadores carregados não dá para saber o estado, então o painel
-    // age como "adicionar"; a API responde 409 se já estiver lá.
-    linha.classList.toggle("on", showListMarks && marcado);
-    linha.textContent = (showListMarks ? (marcado ? "✓ " : "+ ") : "+ ") +
-      (list.title || t("filter.listUnnamed"));
+    linha.classList.toggle("on", marcado);
+    linha.textContent = (marcado ? "✓ " : "+ ") + (list.title || t("filter.listUnnamed"));
 
     linha.addEventListener("click", async () => {
       if (linha.disabled) return;
       linha.disabled = true;
       const card = linha.closest(".card");
-      const acao = showListMarks && marcado ? "remove" : "add";
+      const acao = marcado ? "remove" : "add";
       const ok = await applyMembership(item, { kind: "list", listId: list.id }, acao, list.title, card);
       linha.disabled = false;
       if (ok) painel.hidden = true;
@@ -1109,13 +1096,7 @@ async function loadAllListIndexes() {
   if (semSessao) setQueueStatus(t("action.needSession"), "warn");
 }
 
-async function setShowListMarks(enabled) {
-  showListMarks = !!enabled;
-  writeFlag(MARKS_STORAGE_KEY, showListMarks);
 
-  if (showListMarks) await loadAllListIndexes();
-  render(lastItems);
-}
 
 
 /* --------------------- Navegação entre semanas --------------------- */
@@ -1205,7 +1186,6 @@ document.getElementById("refresh").addEventListener("click", () => load());
 document.getElementById("syncQueue").addEventListener("click", () => syncQueue({ interactive: true }));
 document.getElementById("filterSource").addEventListener("change", (event) => setFilterSource(event.target.value));
 document.getElementById("showUpcoming").addEventListener("change", (event) => setShowUpcoming(event.target.checked));
-document.getElementById("showListMarks").addEventListener("change", (event) => setShowListMarks(event.target.checked));
 // Clique fora fecha o painel de listas aberto.
 document.addEventListener("click", (event) => {
   if (event.target.closest && event.target.closest(".listwrap")) return;
@@ -1219,7 +1199,6 @@ document.getElementById("thisWeek").addEventListener("click", () => goToWeek(0))
 (async function start() {
   await initLanguage();
   showUpcoming = await readFlag(UPCOMING_STORAGE_KEY);
-  showListMarks = await readFlag(MARKS_STORAGE_KEY);
   applyStaticTranslations();
   buildLanguageOptions();
   rebuildFilterOptions();

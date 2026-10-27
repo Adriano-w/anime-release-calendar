@@ -670,9 +670,48 @@ async function fetchCustomLists() {
   });
 }
 
+// Conteúdo das listas guardado em chrome.storage.session: memória, apagada
+// ao fechar o navegador. Reabrir o calendário na mesma sessão não custa
+// requisição nenhuma, e nada disso vai para o disco.
+const LIST_CACHE_KEY = "crListCache";
+const LIST_CACHE_TTL = 10 * 60 * 1000;
+
+async function readListCache() {
+  try {
+    const stored = await chrome.storage.session.get(LIST_CACHE_KEY);
+    const cache = stored && stored[LIST_CACHE_KEY];
+    return cache && typeof cache === "object" ? cache : {};
+  } catch (err) {
+    return {};
+  }
+}
+
+async function writeListCache(cache) {
+  try {
+    await chrome.storage.session.set({ [LIST_CACHE_KEY]: cache });
+  } catch (err) {
+    /* cache é otimização; seguir sem ele */
+  }
+}
+
+// Depois de escrever numa lista, o que estava guardado dela não vale mais.
+async function forgetList(listId) {
+  if (!listId) return;
+  const cache = await readListCache();
+  if (!cache[listId]) return;
+  delete cache[listId];
+  await writeListCache(cache);
+}
+
 async function fetchCustomList(listId) {
   if (typeof listId !== "string" || !listId) {
     return { state: "error", message: t("api.listInvalid") };
+  }
+
+  const cache = await readListCache();
+  const guardado = cache[listId];
+  if (guardado && Date.now() - guardado.at < LIST_CACHE_TTL && Array.isArray(guardado.entries)) {
+    return { state: "ok", total: guardado.entries.length, entries: guardado.entries, cached: true };
   }
 
   return withAccount(async (auth, accountId, localeTag) => {
@@ -707,6 +746,10 @@ async function fetchCustomList(listId) {
 
     // Os ids vindos daqui também servem para abrir o episódio sem busca.
     await warmSeriesCache(entries);
+
+    const atualizado = await readListCache();
+    atualizado[listId] = { entries, at: Date.now() };
+    await writeListCache(atualizado);
 
     return { state: "ok", total: entries.length, entries };
   });
@@ -837,6 +880,8 @@ async function changeMembership(message) {
     );
 
     if (outcome === "full") return { state: "full", listId: target.listId };
+
+    if (isList) await forgetList(target.listId);
 
     return { state: "ok", outcome, action, contentId, listId: isList ? target.listId : "" };
   });

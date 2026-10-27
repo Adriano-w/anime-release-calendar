@@ -99,8 +99,6 @@ const STRINGS = {
     "action.needSession": "Sign in to Crunchyroll and sync to change your lists.",
     "action.noLists": "You have no Crunchylists yet.",
 
-    "marks.label": "Crunchylist marks",
-    "marks.title": "Show which Crunchylists each series is already in (costs one request per list)",
     "marks.loading": "Reading your Crunchylists…",
 
     "write.addedQueue": "“{title}” added to your queue.",
@@ -254,8 +252,6 @@ const STRINGS = {
     "action.needSession": "Entre na Crunchyroll e sincronize para alterar suas listas.",
     "action.noLists": "Você ainda não tem Crunchylists.",
 
-    "marks.label": "Marcadores de Crunchylist",
-    "marks.title": "Mostrar em quais Crunchylists cada série já está (custa uma requisição por lista)",
     "marks.loading": "Lendo suas Crunchylists…",
 
     "write.addedQueue": "“{title}” entrou na sua fila.",

@@ -29,8 +29,16 @@ requests, and reuses it.
 - It is discarded immediately if Crunchyroll rejects it.
 
 **Your Crunchyroll queue and Crunchylists.**
-Read only to mark and filter releases in the calendar. The titles are held in
-memory for the open page and are not stored or transmitted.
+Read only to mark and filter releases in the calendar. The titles are kept in
+`chrome.storage.session`, which is memory only and is erased when the browser
+closes, so reopening the calendar in the same session does not request them
+again. They are never written to disk and never transmitted anywhere.
+
+**Changing your queue and Crunchylists.**
+The extension can add a series to, or remove it from, your Crunchyroll queue
+or one of your Crunchylists. It does so **only when you click the control on a
+card**, and only for the series on that card. It never changes anything on its
+own, and it cannot create, rename or delete a list.
 
 **Your language preference.**
 Stored locally (`chrome.storage.local`) so the interface opens in the language
@@ -47,7 +55,7 @@ The extension contacts only these hosts, and only for the stated purpose:
 | Host | Purpose |
 |---|---|
 | `graphql.anilist.co` | Fetch the weekly release schedule (public API, no account) |
-| `www.crunchyroll.com` | Read your queue/Crunchylists and resolve episode links, using your existing session |
+| `www.crunchyroll.com` | Read your queue/Crunchylists, resolve episode links, and apply the add/remove you asked for — all using your existing session |
 | `www.anidachi.app` | Backup schedule source, used only if AniList fails |
 
 No request carries any identifier created by the extension.
@@ -64,8 +72,8 @@ No request carries any identifier created by the extension.
 
 - `storage` — language preference, public identifier cache, and the in-memory
   session token.
-- Access to `crunchyroll.com` — add the calendar entry to the menu and read your
-  queue and Crunchylists.
+- Access to `crunchyroll.com` — add the calendar entry to the menu, read your
+  queue and Crunchylists, and change them when you ask.
 - Access to `graphql.anilist.co` and `www.anidachi.app` — fetch the schedule.
 
 ## Removing your data
