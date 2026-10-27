@@ -1,6 +1,8 @@
 # Privacy Policy — Anime Release Calendar
 
-_Last updated: 2026-10-26_
+_Last updated: 2026-10-27_
+
+> Published version: <https://adriano-w.github.io/anime-release-calendar/privacy.html>
 
 This extension shows a weekly anime release calendar and links each episode on
 Crunchyroll. This policy describes exactly what it touches.

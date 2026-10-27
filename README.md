@@ -47,7 +47,7 @@ The token is held in `chrome.storage.session` (memory only, cleared when the
 browser closes), is never written to disk, is sent only back to crunchyroll.com,
 and is discarded as soon as Crunchyroll rejects it.
 
-See [PRIVACY.md](PRIVACY.md) for the full picture.
+See the [privacy policy](https://adriano-w.github.io/anime-release-calendar/privacy.html) for the full picture.
 
 ## Title matching
 
