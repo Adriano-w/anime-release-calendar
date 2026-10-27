@@ -20,6 +20,9 @@ AniDachi.
 - **Queue marking.** Releases whose series is in your Crunchyroll queue get a
   discreet `✓`.
 - **Filtering** by your whole queue or by a single Crunchylist.
+- **Add or remove** a series from your queue or any Crunchylist, from the card.
+- **Crunchylist marks** showing which lists a series is already in — optional,
+  off by default, because it costs one request per list.
 - **English and Portuguese (Brazil)**, switchable in the page.
 
 ## Where the data comes from

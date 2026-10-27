@@ -30,6 +30,10 @@ let weekOffset = 0;
 // Lançamentos que ainda não saíram ficam ocultos por padrão.
 let showUpcoming = false;
 const UPCOMING_STORAGE_KEY = "showUpcoming";
+// Marcadores de Crunchylist custam uma requisição por lista, então são
+// opcionais e vêm desligados.
+let showListMarks = false;
+const MARKS_STORAGE_KEY = "showListMarks";
 
 function setQueueStatus(message, tone) {
   if (!queueStatusEl) return;
@@ -277,6 +281,11 @@ function render(items) {
       dayItems.sort((a, b) => (a.sortKey || 0) - (b.sortKey || 0));
 
       for (const item of dayItems) {
+        // O cartão envolve o link e a linha de ações: botões dentro de uma
+        // âncora seriam markup inválido e atrapalhariam o teclado.
+        const card = document.createElement("div");
+        card.className = "card";
+
         const a = document.createElement("a");
         a.className = "episode";
         // A fonte já pode trazer o endereço da série na Crunchyroll; se não,
@@ -344,7 +353,14 @@ function render(items) {
           texto.append(flag);
         }
 
-        list.append(a);
+        card.append(a);
+
+        const marcas = buildListMarks(item);
+        if (marcas) card.append(marcas);
+
+        if (canEditLists(item)) card.append(buildCardActions(item));
+
+        list.append(card);
       }
     }
 
@@ -424,6 +440,13 @@ function updateFilterUi(total, visible, hiddenUpcoming) {
 
   const toggle = document.getElementById("showUpcoming");
   if (toggle) toggle.checked = showUpcoming;
+
+  const marcas = document.getElementById("showListMarks");
+  if (marcas) {
+    marcas.checked = showListMarks;
+    // Sem fila sincronizada não há Crunchylists para marcar.
+    marcas.disabled = !queueIndex;
+  }
 
   const hint = document.getElementById("filterHint");
   if (!hint) return;
@@ -706,7 +729,9 @@ async function syncQueue({ interactive = false } = {}) {
       render(lastItems);
 
       // Com sessão válida, as Crunchylists também ficam disponíveis no filtro.
-      loadCustomLists();
+      loadCustomLists().then(() => {
+        if (showListMarks) setShowListMarks(true);
+      });
 
       if (!result.total) {
         // Fila vazia é resultado legítimo, não falha de autenticação.
@@ -808,6 +833,207 @@ async function openEpisode(item, anchor) {
 }
 
 
+
+/* ------------------- Alterar fila e Crunchylists ------------------- */
+
+// Só dá para alterar o que tem id interno da Crunchyroll e sessão válida.
+function canEditLists(item) {
+  return hasExtensionRuntime() && !!(item && item.seriesId) && !!queueIndex;
+}
+
+// Em quais Crunchylists a série está. Vazio quando os marcadores estão
+// desligados — aí o painel só oferece adicionar.
+function listsContaining(item) {
+  if (!showListMarks) return [];
+  return customLists.filter((list) => indexHas(listIndexes.get(list.id), item));
+}
+
+async function applyMembership(item, target, action, listTitle) {
+  const result = await askBackground({
+    type: "CHANGE_MEMBERSHIP",
+    contentId: item.seriesId,
+    target,
+    action
+  });
+
+  if (result.state !== "ok") {
+    const motivo =
+      result.state === "no-session" ? t("action.needSession") : result.message || t("queue.unknownError");
+    setQueueStatus(t("write.failed", { message: motivo }), "error");
+    return false;
+  }
+
+  // Mantém os índices locais coerentes sem refazer a rede.
+  const chaves = entryKeys(item);
+  const alvo =
+    target.kind === "list" ? listIndexes.get(target.listId) : queueIndex;
+
+  if (alvo && alvo.keys) {
+    if (action === "add") {
+      for (const chave of chaves) alvo.keys.add(chave);
+      alvo.size += 1;
+    } else {
+      for (const chave of chaves) alvo.keys.delete(chave);
+      alvo.size = Math.max(0, alvo.size - 1);
+    }
+  }
+
+  const naLista = target.kind === "list";
+  const chaveTexto =
+    result.outcome === "already"
+      ? naLista ? "write.alreadyList" : "write.alreadyQueue"
+      : action === "add"
+        ? naLista ? "write.addedList" : "write.addedQueue"
+        : naLista ? "write.removedList" : "write.removedQueue";
+
+  setQueueStatus(t(chaveTexto, { title: item.title, list: listTitle || "" }), "ok");
+
+  // O filtro pode depender do que acabou de mudar.
+  if (filterSource === FILTER_QUEUE) filterIndex = queueIndex;
+  else if (naLista && filterSource === target.listId) filterIndex = listIndexes.get(target.listId);
+
+  render(lastItems);
+  return true;
+}
+
+function buildQueueButton(item) {
+  const botao = document.createElement("button");
+  botao.type = "button";
+  botao.className = "cardbtn";
+
+  const dentro = isInQueue(item);
+  botao.textContent = t(dentro ? "action.inQueue" : "action.addQueue");
+  botao.title = t(dentro ? "action.queueRemoveTitle" : "action.queueAddTitle");
+  botao.classList.toggle("on", dentro);
+
+  botao.addEventListener("click", async () => {
+    if (botao.disabled) return;
+    botao.disabled = true;
+    await applyMembership(item, { kind: "queue" }, dentro ? "remove" : "add");
+    botao.disabled = false;
+  });
+
+  return botao;
+}
+
+function buildListsButton(item) {
+  const envoltorio = document.createElement("div");
+  envoltorio.className = "listwrap";
+
+  const botao = document.createElement("button");
+  botao.type = "button";
+  botao.className = "cardbtn";
+  botao.textContent = t("action.lists");
+  botao.title = t("action.listsTitle");
+
+  const painel = document.createElement("div");
+  painel.className = "listmenu";
+  painel.hidden = true;
+
+  botao.addEventListener("click", () => {
+    // Um painel aberto por vez.
+    for (const outro of document.querySelectorAll(".listmenu")) {
+      if (outro !== painel) outro.hidden = true;
+    }
+    painel.hidden = !painel.hidden;
+    if (!painel.hidden) preencherPainel(painel, item);
+  });
+
+  envoltorio.append(botao, painel);
+  return envoltorio;
+}
+
+function preencherPainel(painel, item) {
+  painel.replaceChildren();
+
+  if (!customLists.length) {
+    const vazio = document.createElement("div");
+    vazio.className = "listmenu-empty";
+    vazio.textContent = t("action.noLists");
+    painel.append(vazio);
+    return;
+  }
+
+  const dentroDe = new Set(listsContaining(item).map((list) => list.id));
+
+  for (const list of customLists) {
+    const linha = document.createElement("button");
+    linha.type = "button";
+    linha.className = "listmenu-item";
+
+    const marcado = dentroDe.has(list.id);
+    // Sem marcadores carregados não dá para saber o estado, então o painel
+    // age como "adicionar"; a API responde 409 se já estiver lá.
+    linha.classList.toggle("on", showListMarks && marcado);
+    linha.textContent = (showListMarks ? (marcado ? "✓ " : "+ ") : "+ ") +
+      (list.title || t("filter.listUnnamed"));
+
+    linha.addEventListener("click", async () => {
+      if (linha.disabled) return;
+      linha.disabled = true;
+      const acao = showListMarks && marcado ? "remove" : "add";
+      const ok = await applyMembership(item, { kind: "list", listId: list.id }, acao, list.title);
+      linha.disabled = false;
+      if (ok) painel.hidden = true;
+    });
+
+    painel.append(linha);
+  }
+}
+
+function buildCardActions(item) {
+  const linha = document.createElement("div");
+  linha.className = "cardactions";
+  linha.append(buildQueueButton(item), buildListsButton(item));
+  return linha;
+}
+
+// Chips com as Crunchylists que já contêm a série.
+function buildListMarks(item) {
+  const listas = listsContaining(item);
+  if (!listas.length) return null;
+
+  const caixa = document.createElement("div");
+  caixa.className = "listmarks";
+  for (const list of listas) {
+    const chip = document.createElement("span");
+    chip.className = "listmark";
+    chip.textContent = list.title || t("filter.listUnnamed");
+    caixa.append(chip);
+  }
+  return caixa;
+}
+
+// Carrega o conteúdo de todas as Crunchylists — uma requisição por lista,
+// guardada em cache. É por isso que os marcadores são opcionais.
+async function loadAllListIndexes() {
+  if (!customLists.length) return;
+
+  const faltando = customLists.filter((list) => !listIndexes.has(list.id));
+  if (!faltando.length) return;
+
+  setQueueStatus(t("marks.loading"));
+
+  for (const list of faltando) {
+    const result = await askBackground({ type: "GET_CUSTOM_LIST", listId: list.id });
+    if (result.state === "ok") {
+      listIndexes.set(list.id, buildQueueIndex(result.entries || []));
+    } else if (result.state === "no-session") {
+      setQueueStatus(t("action.needSession"), "warn");
+      return;
+    }
+  }
+}
+
+async function setShowListMarks(enabled) {
+  showListMarks = !!enabled;
+  writeFlag(MARKS_STORAGE_KEY, showListMarks);
+
+  if (showListMarks) await loadAllListIndexes();
+  render(lastItems);
+}
+
+
 /* --------------------- Navegação entre semanas --------------------- */
 
 // Domingo da semana exibida, mesmo quando a fonte não informou a janela.
@@ -895,6 +1121,12 @@ document.getElementById("refresh").addEventListener("click", () => load());
 document.getElementById("syncQueue").addEventListener("click", () => syncQueue({ interactive: true }));
 document.getElementById("filterSource").addEventListener("change", (event) => setFilterSource(event.target.value));
 document.getElementById("showUpcoming").addEventListener("change", (event) => setShowUpcoming(event.target.checked));
+document.getElementById("showListMarks").addEventListener("change", (event) => setShowListMarks(event.target.checked));
+// Clique fora fecha o painel de listas aberto.
+document.addEventListener("click", (event) => {
+  if (event.target.closest && event.target.closest(".listwrap")) return;
+  for (const painel of document.querySelectorAll(".listmenu")) painel.hidden = true;
+});
 document.getElementById("language").addEventListener("change", (event) => changeLanguage(event.target.value));
 document.getElementById("prevWeek").addEventListener("click", () => goToWeek(weekOffset - 1));
 document.getElementById("nextWeek").addEventListener("click", () => goToWeek(weekOffset + 1));
@@ -903,6 +1135,7 @@ document.getElementById("thisWeek").addEventListener("click", () => goToWeek(0))
 (async function start() {
   await initLanguage();
   showUpcoming = await readFlag(UPCOMING_STORAGE_KEY);
+  showListMarks = await readFlag(MARKS_STORAGE_KEY);
   applyStaticTranslations();
   buildLanguageOptions();
   rebuildFilterOptions();

@@ -713,6 +713,107 @@ async function fetchCustomList(listId) {
 }
 
 
+
+/* --------------- Escrita: fila e Crunchylists ---------------
+ *
+ * Endpoints observados no próprio fluxo do site (todos sob
+ * /content/v2/<conta>/, com os mesmos parâmetros de locale das leituras):
+ *
+ *   POST   /watchlist                      body {"content_id": "<id da série>"}
+ *   DELETE /watchlist/<id>                 body {}
+ *   POST   /custom-lists/<lista>           body {"content_id": "<id da série>"}
+ *   DELETE /custom-lists/<lista>/<id>      body {}
+ *
+ * 409 significa "já está lá": é sucesso para quem só quer garantir presença.
+ */
+
+const WRITE_AUDIO = PREFERRED_AUDIO;
+
+function writeQuery(localeTag) {
+  return (
+    `?preferred_audio_language=${WRITE_AUDIO}` +
+    `&locale=${encodeURIComponent(localeTag)}`
+  );
+}
+
+// Envia uma escrita e normaliza o resultado. `missingIsOk` trata 404 como
+// sucesso ao remover: o item já não estava lá.
+async function apiWrite(auth, url, method, payload, missingIsOk) {
+  let response;
+  try {
+    response = await fetch(url, {
+      method,
+      headers: Object.assign(authHeaders(auth), { "Content-Type": "application/json" }),
+      cache: "no-store",
+      body: JSON.stringify(payload || {})
+    });
+  } catch (err) {
+    throw new Error(t("api.network"));
+  }
+
+  if (response.status === 401 || response.status === 403) throw unauthorized();
+  // Já presente (409) ou já ausente (404) deixam o estado desejado de pé.
+  if (response.status === 409) return "already";
+  if (response.status === 404 && missingIsOk) return "already";
+  if (!response.ok) throw new Error(t("api.http", { status: response.status }));
+  return "done";
+}
+
+function watchlistItemUrl(accountId, contentId, localeTag) {
+  return (
+    `${CR_ORIGIN}/content/v2/${encodeURIComponent(accountId)}/watchlist/` +
+    `${encodeURIComponent(contentId)}${writeQuery(localeTag)}`
+  );
+}
+
+function customListItemUrl(accountId, listId, contentId, localeTag) {
+  return (
+    `${CR_ORIGIN}/content/v2/${encodeURIComponent(accountId)}/custom-lists/` +
+    `${encodeURIComponent(listId)}/${encodeURIComponent(contentId)}${writeQuery(localeTag)}`
+  );
+}
+
+// target: { kind: "queue" } ou { kind: "list", listId }
+// action: "add" | "remove"
+async function changeMembership(message) {
+  const contentId = message && message.contentId;
+  if (typeof contentId !== "string" || !contentId) {
+    return { state: "error", message: t("api.contentMissing") };
+  }
+
+  const action = message.action === "remove" ? "remove" : "add";
+  const target = message.target || {};
+  const isList = target.kind === "list";
+
+  if (isList && (typeof target.listId !== "string" || !target.listId)) {
+    return { state: "error", message: t("api.listInvalid") };
+  }
+
+  return withAccount(async (auth, accountId, localeTag) => {
+    let url;
+    let method;
+
+    if (action === "add") {
+      method = "POST";
+      url = isList
+        ? `${CR_ORIGIN}/content/v2/${encodeURIComponent(accountId)}/custom-lists/` +
+          `${encodeURIComponent(target.listId)}${writeQuery(localeTag)}`
+        : `${CR_ORIGIN}/content/v2/${encodeURIComponent(accountId)}/watchlist${writeQuery(localeTag)}`;
+    } else {
+      method = "DELETE";
+      url = isList
+        ? customListItemUrl(accountId, target.listId, contentId, localeTag)
+        : watchlistItemUrl(accountId, contentId, localeTag);
+    }
+
+    const payload = action === "add" ? { content_id: contentId } : {};
+    const outcome = await apiWrite(auth, url, method, payload, action === "remove");
+
+    return { state: "ok", outcome, action, contentId, listId: isList ? target.listId : "" };
+  });
+}
+
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || typeof message.type !== "string") return undefined;
 
@@ -730,6 +831,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === "GET_WATCHLIST") {
     fetchWatchlist()
+      .then(sendResponse)
+      .catch((err) => sendResponse({ state: "error", message: String((err && err.message) || err) }));
+    return true;
+  }
+
+  if (message.type === "CHANGE_MEMBERSHIP") {
+    changeMembership(message)
       .then(sendResponse)
       .catch((err) => sendResponse({ state: "error", message: String((err && err.message) || err) }));
     return true;
