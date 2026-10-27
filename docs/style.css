@@ -1,0 +1,123 @@
+/* Mesma paleta da extensão, para a página parecer parte do produto. */
+:root {
+  color-scheme: dark light;
+  --bg: #0d0d12;
+  --panel: #17171f;
+  --line: #30303b;
+  --text: #f7f7fb;
+  --muted: #a8a8b8;
+  --accent: #f47521;
+}
+
+* { box-sizing: border-box }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 48px 20px 72px;
+}
+
+.eyebrow {
+  margin: 0 0 24px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.eyebrow a { color: var(--accent); text-decoration: none }
+.eyebrow a:hover { text-decoration: underline }
+
+h1 {
+  margin: 0 0 6px;
+  font-size: clamp(28px, 5vw, 40px);
+  letter-spacing: -.03em;
+  line-height: 1.15;
+}
+
+h2 {
+  margin: 40px 0 10px;
+  font-size: 20px;
+  letter-spacing: -.01em;
+}
+
+h3 {
+  margin: 26px 0 6px;
+  font-size: 16px;
+  color: var(--accent);
+}
+
+.updated {
+  margin: 0 0 28px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+p { margin: 0 0 14px }
+
+.callout {
+  padding: 16px 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px;
+}
+
+ul { margin: 0 0 14px; padding-left: 22px }
+li { margin-bottom: 6px }
+
+code {
+  padding: 1px 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: .9em;
+  word-break: break-word;
+}
+
+.tablewrap { overflow-x: auto; margin-bottom: 16px }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+
+th, td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+th { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .06em }
+
+a { color: var(--accent) }
+
+footer {
+  margin-top: 48px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 14px;
+}
+
+footer p { margin: 0 }
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #ffffff;
+    --panel: #f5f5f7;
+    --line: #dcdce3;
+    --text: #16161c;
+    --muted: #5d5d6b;
+    --accent: #c25410;
+  }
+}

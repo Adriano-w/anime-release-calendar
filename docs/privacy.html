@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy — Anime Release Calendar</title>
+<meta name="description" content="Privacy policy for the Anime Release Calendar browser extension.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow"><a href="./">Anime Release Calendar</a></p>
+  <h1>Privacy Policy</h1>
+  <p class="updated">Last updated: 27 October 2026</p>
+
+  <p>This extension shows a weekly anime release calendar and links each episode
+  on Crunchyroll. This page describes exactly what it touches.</p>
+
+  <h2>Summary</h2>
+  <p class="callout">The extension sends <strong>no data to the developer or to
+  any third-party server</strong>. There is no analytics, no tracking, no
+  advertising, and no account of any kind. Everything it reads stays inside your
+  own browser.</p>
+
+  <h2>What the extension accesses</h2>
+
+  <h3>Your Crunchyroll session</h3>
+  <p>To show which series are in your queue or in a Crunchylist, the extension
+  needs to talk to Crunchyroll as you. It never asks for your password and never
+  reads your cookies. Instead, while you are on crunchyroll.com, it observes the
+  authorization header that the Crunchyroll page itself already sends with its
+  own requests, and reuses it.</p>
+  <ul>
+    <li>Kept in <code>chrome.storage.session</code>, which lives in memory only
+    and is erased when the browser closes.</li>
+    <li><strong>Never written to disk</strong> and <strong>never sent anywhere
+    except crunchyroll.com</strong>, which issued it.</li>
+    <li>Discarded immediately if Crunchyroll rejects it.</li>
+  </ul>
+
+  <h3>Your Crunchyroll queue and Crunchylists</h3>
+  <p>Read only to mark and filter releases in the calendar. The titles are held
+  in memory for the open page and are not stored or transmitted.</p>
+
+  <h3>Your language preference</h3>
+  <p>Stored locally so the interface opens in the language you chose.</p>
+
+  <h3>A cache of public series identifiers</h3>
+  <p>Stored locally to avoid repeating lookups. These identifiers are public
+  catalog data, not personal information.</p>
+
+  <h2>Network requests</h2>
+  <p>The extension contacts only these hosts, and only for the stated
+  purpose:</p>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Host</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>graphql.anilist.co</code></td><td>Fetch the weekly release schedule (public API, no account)</td></tr>
+      <tr><td><code>www.crunchyroll.com</code></td><td>Read your queue and Crunchylists and resolve episode links, using your existing session</td></tr>
+      <tr><td><code>www.anidachi.app</code></td><td>Backup schedule source, used only if AniList fails</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>No request carries any identifier created by the extension.</p>
+
+  <h2>What the extension does not do</h2>
+  <ul>
+    <li>Does not collect or transmit personal information.</li>
+    <li>Does not sell or share data with anyone.</li>
+    <li>Does not use data for advertising, credit, or lending purposes.</li>
+    <li>Does not read pages other than crunchyroll.com.</li>
+    <li>Does not load or execute remote code; all code ships inside the package.</li>
+  </ul>
+
+  <h2>Permissions</h2>
+  <div class="tablewrap">
+  <table>
+    <thead><tr><th>Permission</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td><code>storage</code></td><td>Language preference, public identifier cache, and the in-memory session token</td></tr>
+      <tr><td>Access to <code>crunchyroll.com</code></td><td>Add the calendar entry to the menu and read your queue and Crunchylists</td></tr>
+      <tr><td>Access to <code>graphql.anilist.co</code> and <code>www.anidachi.app</code></td><td>Fetch the schedule</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>Removing your data</h2>
+  <p>Uninstalling the extension removes everything it stored. Closing the
+  browser already clears the session token.</p>
+
+  <h2>Affiliation</h2>
+  <p>This extension is not affiliated with, endorsed by, or sponsored by
+  Crunchyroll, AniList, or AniDachi. All trademarks belong to their respective
+  owners.</p>
+
+  <h2>Contact</h2>
+  <p>Questions or problems: open an issue at
+  <a href="https://github.com/Adriano-w/anime-release-calendar/issues">github.com/Adriano-w/anime-release-calendar/issues</a>.</p>
+
+  <footer>
+    <p><a href="https://github.com/Adriano-w/anime-release-calendar">Source code on GitHub</a></p>
+  </footer>
+</main>
+</body>
+</html>
